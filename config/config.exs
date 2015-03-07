@@ -24,3 +24,14 @@ use Mix.Config
 # here (which is why it is important to import them last).
 #
 #     import_config "#{Mix.env}.exs"
+
+config :osumiex,
+  port: 3000
+
+config :exlager,
+  level: :debug,
+  truncation_size: 8096
+
+config :logger, :console,
+  format: "\n$date $time [$level] $metadata$message",
+  metadata: [:user_id]
