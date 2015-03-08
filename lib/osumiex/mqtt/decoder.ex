@@ -24,10 +24,13 @@ defmodule Osumiex.Mqtt.Decoder do
 
   # Connect
   defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :connect, body: body} = _header) do
-    decode_connect(body)
+    decode_connect(body) |> Osumiex.Mqtt.Utils.Log.info
   end
   defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :ping_req, body: body} = _header) do
     decode_ping_req()
+  end
+  defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :publish, body: body} = header) do
+    decode_publish(header, body) |> Osumiex.Mqtt.Utils.Log.info
   end
   defp decode_msg(%Osumiex.Mqtt.Message.Header{type: type} = _msg) do
     Logger.info("2)type : #{type}")
@@ -48,6 +51,7 @@ defmodule Osumiex.Mqtt.Decoder do
     {password, payload} = pick_1head(pass_flag, payload)
 
     Osumiex.Mqtt.Message.connect(client_id, user_name, password,
+                                 version,
                                  keep_alive,
                                  (w_flag == 1),
                                  binary_to_mqtt_qos(w_qos),
@@ -55,6 +59,16 @@ defmodule Osumiex.Mqtt.Decoder do
                                  will_topic,
                                  will_message,
                                  (clean == 1))
+  end
+
+  def decode_publish(%Osumiex.Mqtt.Message.Header{qos: :fire_and_forget} = header,
+                     <<topic_len :: integer-unsigned-size(16), topic :: binary-size(topic_len),
+                     message :: binary>>) do
+    Osumiex.Mqtt.Message.publish(header.qos, header.dup, header.retain, topic, 0, message)
+  end
+  def decode_publish(header, <<topic_len :: integer-unsigned-size(16), topic :: binary-size(topic_len),
+                     message_id :: integer-unsigned-size(16), message :: binary>>) do
+    Osumiex.Mqtt.Message.publish(header.qos, header.dup, header.retain, topic, message_id, message)
   end
 
   def decode_ping_req() do
