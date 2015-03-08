@@ -24,4 +24,11 @@ defmodule Osumiex.Mqtt.Utils.Log do
     message
   end
 
+  def info(%Osumiex.Mqtt.Message.Subscribe{} = message) do
+    Logger.debug("Subscribe - qos        : #{message.qos}")
+    Logger.debug("Subscribe - dup        : #{message.dup}")
+    Logger.debug("Subscribe - message_id : #{message.message_id}");
+    Logger.debug("Subscribe - topics     : #{inspect(message.topics)}");
+    message
+  end
 end

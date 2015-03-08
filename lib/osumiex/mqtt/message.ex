@@ -81,6 +81,32 @@ defmodule Osumiex.Mqtt.Message do
     }
   end
 
+  defmodule Subscribe do
+    defstruct message_type: :subscribe,
+      qos: :fire_and_forget,
+      dup: false,
+      message_id: 0,
+      topics: []
+  end
+  def subscribe(qos, dup, message_id, topics) when is_atom(qos) and is_boolean(dup) and is_list(topics) do
+    %Subscribe{
+      qos: qos,
+      dup: dup,
+      message_id: message_id,
+      topics: topics
+    }
+  end
+  defmodule SubAck do
+    defstruct message_type: :sub_ack,
+      message_id: 0,
+      topics: [{"topic", :fire_and_forget}]
+  end
+  def sub_ack(message_id, topics) when is_integer(message_id) and is_list(topics) do
+    %SubAck{
+      message_id: message_id,
+      topics: topics
+    }
+  end
 
   defmodule PingReq do
     defstruct message_type: :ping_req

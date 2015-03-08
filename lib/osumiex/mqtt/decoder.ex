@@ -32,6 +32,9 @@ defmodule Osumiex.Mqtt.Decoder do
   defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :publish, body: body} = header) do
     decode_publish(header, body) |> Osumiex.Mqtt.Utils.Log.info
   end
+  defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :subscribe, body: body} = header) do
+    decode_subscribe(header, body) |> Osumiex.Mqtt.Utils.Log.info
+  end
   defp decode_msg(%Osumiex.Mqtt.Message.Header{type: type} = _msg) do
     Logger.info("2)type : #{type}")
   end
@@ -71,10 +74,20 @@ defmodule Osumiex.Mqtt.Decoder do
     Osumiex.Mqtt.Message.publish(header.qos, header.dup, header.retain, topic, message_id, message)
   end
 
+  def decode_subscribe(header, <<message_id :: integer-unsigned-size(16), payload :: binary>>) do
+    topics = topics(payload)
+    Osumiex.Mqtt.Message.subscribe(header.qos, header.dup, message_id, topics)
+  end
+
   def decode_ping_req() do
     Osumiex.Mqtt.Message.ping_req()
   end
 
+  defp topics(<<>>, acc), do: acc |> Enum.reverse
+  defp topics(<<topic_len :: integer-unsigned-size(16), topic :: binary-size(topic_len),
+              _ :: size(6), qos :: size(2), rest :: binary>> = payload, acc \\ []) do
+    topics(rest, [{topic, binary_to_mqtt_qos(qos)} | acc])
+  end
 
   defp binary_to_len(bin, count \\ 4, rest_bin)
   defp binary_to_len(_bin, _count = 0, _rest_bin), do: raise 'Invalid length'

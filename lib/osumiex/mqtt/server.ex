@@ -60,6 +60,11 @@ defmodule Osumiex.Mqtt.Server do
     response_data = ping_resp |> Osumiex.Mqtt.Encoder.encode
     transport.send(socket, response_data)
   end
+  def do_response(socket, transport, %Osumiex.Mqtt.Message.Subscribe{} = message) do
+    sub_ack = Osumiex.Mqtt.Message.sub_ack(message.message_id, message.topics)
+    response_data = sub_ack |> Osumiex.Mqtt.Encoder.encode
+    transport.send(socket, response_data)
+  end
   def do_response(socket, transport, _message) do
     Logger.info("unknown message : #{inspect _message}")
   end
