@@ -10,9 +10,9 @@ defmodule Osumiex do
 
     port = Application.get_env(:osumiex, :port)
 
-    :ranch.start_listener(:mqtt_server, @nbAcceptors, :ranch_tcp,
+    :ranch.start_listener(:mqtt_client, @nbAcceptors, :ranch_tcp,
                           [{:active, :once}, {:packet, :raw}, {:reuseaddr, true}, {:port, port}],
-                          Osumiex.Mqtt.Server, [])
+                          Osumiex.Mqtt.Client, [])
 
     children = [
       # Define workers and child supervisors to be supervised

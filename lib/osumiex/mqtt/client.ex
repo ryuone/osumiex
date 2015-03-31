@@ -1,4 +1,4 @@
-defmodule Osumiex.Mqtt.Server do
+defmodule Osumiex.Mqtt.Client do
   use GenServer
 
   require Logger
@@ -40,6 +40,10 @@ defmodule Osumiex.Mqtt.Server do
     {:stop, :normal, State};
   end
 
+  def handle_info(_, state) do
+    {:noreply, state}
+  end
+
   def terminate(_reason, _state) do
      :ok
   end
@@ -60,8 +64,11 @@ defmodule Osumiex.Mqtt.Server do
     response_data = ping_resp |> Osumiex.Mqtt.Encoder.encode
     transport.send(socket, response_data)
   end
+  # Subscribe
   def do_response(socket, transport, %Osumiex.Mqtt.Message.Subscribe{} = message) do
     sub_ack = Osumiex.Mqtt.Message.sub_ack(message.message_id, message.topics)
+    Logger.debug(inspect(self))
+    Logger.debug(inspect(sub_ack))
     response_data = sub_ack |> Osumiex.Mqtt.Encoder.encode
     transport.send(socket, response_data)
   end
