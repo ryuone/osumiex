@@ -32,7 +32,7 @@ defmodule Osumiex.Mqtt.Message do
       will_qos: :fire_and_forget, # :: Mqttex.qos_type,
       will_retain: false, # :: boolean,
       will_topic: "", # :: binary,
-      will_message: "", # :: binary,
+      will_message: "", # :: binary,+
       clean_session: true # :: boolean,
     @type t :: %__MODULE__{}
   end
@@ -108,14 +108,42 @@ defmodule Osumiex.Mqtt.Message do
     }
   end
 
+  ###========================================================
+  ### MQTT : Ping request
+  ###========================================================
   defmodule PingReq do
     defstruct message_type: :ping_req
   end
   def ping_req(), do: %PingReq{}
 
+  ###========================================================
+  ### MQTT : Ping response
+  ###========================================================
   defmodule PingRes do
     defstruct message_type: :ping_resp
   end
   def ping_resp(), do: %PingRes{}
 
+  ###========================================================
+  ### State : Session
+  ###========================================================
+  defmodule Session do
+    defstruct socket: nil,
+      transport: nil,
+      client_id: nil,
+      client_pid: nil,
+      expires: 0,
+      keep_alive: :infinity,
+      expire_timer: nil
+  end
+  def session(socket, transport, client_id, client_pid, keep_alive, expires) do
+    %Session{
+      socket: socket,
+      transport: transport,
+      client_id: client_id,
+      client_pid: client_pid,
+      expires: expires,
+      keep_alive: keep_alive
+    }
+  end
 end
