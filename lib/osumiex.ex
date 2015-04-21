@@ -18,6 +18,7 @@ defmodule Osumiex do
       # Define workers and child supervisors to be supervised
       # worker(Osumiex.Worker, [arg1, arg2, arg3])
       # worker(Osumiex.Mqtt.Server, [], restart: :transient)
+      worker(Osumiex.Mqtt.PubSub, [], restart: :transient),
       supervisor(Osumiex.Mqtt.SupSession, [], restart: :transient)
     ]
 

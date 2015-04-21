@@ -132,6 +132,7 @@ defmodule Osumiex.Mqtt.Message do
       transport: nil,
       client_id: nil,
       client_pid: nil,
+      subscribes: Map.new(),
       expires: 0,
       keep_alive: :infinity,
       expire_timer: nil
@@ -146,4 +147,15 @@ defmodule Osumiex.Mqtt.Message do
       keep_alive: keep_alive
     }
   end
+
+  ###========================================================
+  ### Topic
+  ###========================================================
+  defmodule Topic do
+    defstruct name: nil, node: nil
+  end
+  def topic(name, node) do
+    %Topic{name: name, node: node}
+  end
+
 end

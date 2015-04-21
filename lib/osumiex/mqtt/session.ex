@@ -38,6 +38,10 @@ defmodule Osumiex.Mqtt.Session do
     true = Process.link(client_pid)
     {:reply, :ok, %{state | socket: socket, transport: transport, client_pid: client_pid, expire_timer: nil}}
   end
+  def handle_call({:subscribe, topics}, _from, state) do
+    {:ok, new_state} = subscribe(state, topics)
+    {:reply, :ok, new_state};
+  end
   def handle_call(msg, _from, state) do
     Logger.info "Session.handle_call called #{inspect msg}"
     {:reply, :ok, state}
@@ -66,5 +70,22 @@ defmodule Osumiex.Mqtt.Session do
   def resume(socket, transport, client_pid, session_pid) do
     GenServer.call session_pid, {:resume, socket, transport, client_pid}
   end
+
+  #
+  # Subscribe
+  #
+  def subscribe(%Osumiex.Mqtt.Message.Session{subscribes: subscribes} = state, topics) do
+    subscribes = List.foldl(topics, subscribes, fn({topic, qos}, acc) ->
+      Map.put acc, topic, qos
+    end)
+    :ok = Osumiex.Mqtt.PubSub.subscribe(topics)
+    {:ok, %{state | subscribes: subscribes}};
+  end
+  def subscribe(session_pid, topics) do
+    Logger.info("Session subscribe called #{inspect topics}")
+    :ok = GenServer.call(session_pid, {:subscribe, topics})
+    :ok
+  end
+
 
 end
