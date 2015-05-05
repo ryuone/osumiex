@@ -83,6 +83,8 @@ defmodule Osumiex.Mqtt.PubSub do
   # ------------------------------------------------------------------
   def match(topic) when is_binary(topic) do
     trie_nodes = :mnesia.async_dirty(&trie_match/1, [Osumiex.Mqtt.Topic.words(topic)])
+    names = for trie_node=Osumiex.Mqtt.Topic.topic_trie_node(topic: name) <- trie_nodes, name != nil, do: name
+    List.flatten(for name <- names, do: :mnesia.dirty_read(:topic, name))
   end
 
   def subscribe({topic, qos}) when is_binary(topic) do
@@ -112,6 +114,26 @@ defmodule Osumiex.Mqtt.PubSub do
       {:atomic, :ok} -> subscribe(topics, subscriber_pid)
       error -> {:error, error}
     end
+  end
+
+  def publish(%Osumiex.Mqtt.Message.Publish{} = message) do
+    func = fn(Osumiex.Mqtt.Topic.topic(name: topic, node: node), acc) ->
+      case node == node() do
+        true -> dispatch(topic, message) + acc
+        false -> :ok # TODO: Implement RPC.
+      end
+    end
+    List.foldl(match(message.topic), 0, func)
+  end
+
+  defp dispatch(topic, %Osumiex.Mqtt.Message.Publish{message: msg} = message) do
+    subscribers = :mnesia.dirty_read(:topic_subscriber, topic)
+    Logger.info("Subscribers : [#{inspect subscribers}]")
+    subscribers |> Enum.each(fn(Osumiex.Mqtt.Topic.topic_subscriber(subscriber_pid: subscriber_pid)) ->
+      Logger.info("Subscriber Pid : #{inspect subscriber_pid}")
+      send subscriber_pid, {:dispatch, {self(), message}}
+    end)
+    length(subscribers)
   end
 
   # ------------------------------------------------------------------

@@ -8,7 +8,7 @@ defmodule Osumiex.Mqtt.Decoder do
     decode_msg(msg)
   end
 
-  def decode_header(<<type :: size(4), dup :: size(1), qos :: size(2),
+  defp decode_header(<<type :: size(4), dup :: size(1), qos :: size(2),
                     retain :: size(1), len :: size(8)>>, body_msg) do
     [len, body_msg] = binary_to_len(<<len>>, body_msg)
 
