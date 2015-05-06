@@ -3,12 +3,12 @@ defmodule Osumiex.Mqtt.SupSession do
   require Logger
 
   def start_link do
-    Logger.info "SupSession.start_link called."
+    :ok = Logger.info "SupSession.start_link called."
     Supervisor.start_link(__MODULE__, [], name: __MODULE__)
   end
 
   def init([]) do
-    Logger.info "SupSession.init called."
+    :ok = Logger.info "SupSession.init called."
     children = [
       worker(Osumiex.Mqtt.Session, [], restart: :transient)
     ]

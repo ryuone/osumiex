@@ -34,13 +34,13 @@ defmodule Osumiex.Mqtt.Topic do
   def type(name) when is_binary(name) do
     type(%Osumiex.Mqtt.Message.Topic{name: name})
   end
-  def type(%Osumiex.Mqtt.Message.Topic{name: name} = topic) when is_binary(name) do
+  def type(%Osumiex.Mqtt.Message.Topic{name: name} = _topic) when is_binary(name) do
     type2(name)
   end
 
   defp type2(""), do: :direct
-  defp type2(<<?+::size(8), rest::binary>>), do: :wildcard
-  defp type2(<<?#::size(8), rest::binary>>), do: :wildcard
+  defp type2(<<?+::size(8), _rest::binary>>), do: :wildcard
+  defp type2(<<?#::size(8), _rest::binary>>), do: :wildcard
   defp type2(<<_::size(8), rest::binary>>) do
     type2(rest)
   end

@@ -4,11 +4,11 @@ defmodule Osumiex.Mqtt.Message do
     @moduledoc """
     Defines the fixed header of a MQTT message.
     """
-    defstruct type: :reserved, # :: Mqttex.message_type,
-      dup: false, # :: boolean,
-      qos: :fire_and_forget, # :: Mqttex.qos_type,
-      retain: false, # :: boolean,
-      len: 0, # :: pos_integer
+    defstruct type: :reserved,
+      dup: false,
+      qos: :fire_and_forget,
+      retain: false,
+      len: 0,
       body: <<>>
     @type t :: %__MODULE__{}
   end
@@ -34,6 +34,7 @@ defmodule Osumiex.Mqtt.Message do
       will_topic: "", # :: binary,
       will_message: "", # :: binary,+
       clean_session: true # :: boolean,
+    @type client_id :: String.t
     @type t :: %__MODULE__{}
   end
   def connect(client_id, user_name, password, version, keep_alive, last_will,
@@ -70,6 +71,7 @@ defmodule Osumiex.Mqtt.Message do
       message: ""
     @type t :: %__MODULE__{}
   end
+  @spec publish(atom, boolean, boolean, binary, number, binary) :: Publish.t
   def publish(qos, dup, retain, topic, message_id, message) do
     %Publish{
       qos: qos,
@@ -87,6 +89,7 @@ defmodule Osumiex.Mqtt.Message do
       dup: false,
       message_id: 0,
       topics: []
+    @type t :: %__MODULE__{}
   end
   def subscribe(qos, dup, message_id, topics) when is_atom(qos) and is_boolean(dup) and is_list(topics) do
     %Subscribe{
@@ -96,11 +99,14 @@ defmodule Osumiex.Mqtt.Message do
       topics: topics
     }
   end
+
   defmodule SubAck do
     defstruct message_type: :sub_ack,
       message_id: 0,
       topics: [{"topic", :fire_and_forget}]
+    @type t :: %__MODULE__{}
   end
+  @spec sub_ack(number, list) :: SubAck.t
   def sub_ack(message_id, topics) when is_integer(message_id) and is_list(topics) do
     %SubAck{
       message_id: message_id,
@@ -113,6 +119,7 @@ defmodule Osumiex.Mqtt.Message do
   ###========================================================
   defmodule PingReq do
     defstruct message_type: :ping_req
+    @type t :: %__MODULE__{}
   end
   def ping_req(), do: %PingReq{}
 

@@ -1,7 +1,7 @@
 defmodule Osumiex do
   use Application
 
-  @nbAcceptors 5
+  @ranchAcceptors 5
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
@@ -10,7 +10,7 @@ defmodule Osumiex do
 
     port = Application.get_env(:osumiex, :port)
 
-    :ranch.start_listener(:mqtt_client, @nbAcceptors, :ranch_tcp,
+    :ranch.start_listener(:mqtt_client, @ranchAcceptors, :ranch_tcp,
                           [{:active, :once}, {:packet, :raw}, {:reuseaddr, true}, {:port, port}],
                           Osumiex.Mqtt.Client, [])
 

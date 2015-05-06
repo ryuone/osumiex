@@ -9,34 +9,34 @@ defmodule Osumiex.Mqtt.Session do
   # Gen Server(OTP) functions
   ##############################################################################
 
-  def start_link(socket, transport, client_pid, %Osumiex.Mqtt.Message.Connect{} = connect) do
-    Logger.info "Session.start_link called [#{inspect self()}]"
-    GenServer.start_link(__MODULE__, [socket, transport, client_pid, connect], name: {:global, connect.client_id})
+  def start_link(socket, transport, client_pid, %Osumiex.Mqtt.Message.Connect{client_id: client_id} = connect) do
+    :ok = Logger.info "Session.start_link called [#{inspect self()}]"
+    GenServer.start_link(__MODULE__, [socket, transport, client_pid, connect], name: {:global, client_id})
   end
 
   def init([socket, transport, client_pid, connect]) do
-    Logger.info "Session.init called [#{inspect client_pid}, #{inspect self()}]"
+    :ok = Logger.info "Session.init called [#{inspect client_pid}, #{inspect self()}]"
     Process.flag(:trap_exit, true)
     true = Process.link(client_pid)
     {:ok, Osumiex.Mqtt.Message.session(socket, transport, connect.client_id, client_pid, connect.keep_alive, @expires)}
   end
 
   def handle_cast(msg, s) do
-    Logger.info "Session.handle_cast called #{inspect msg}"
+    :ok = Logger.info "Session.handle_cast called #{inspect msg}"
     {:noreply, s}
   end
 
   def handle_call({:keepalive, :start, _client_pid}, _from, s) do
-    Logger.info "Session.handle_call :keepalive :start #{inspect _from}"
-    Logger.info "Session.handle_call :keepalive :start KeepAlive=#{inspect s.keep_alive}"
-    Logger.info inspect(s.transport)
+    :ok = Logger.info "Session.handle_call :keepalive :start #{inspect _from}"
+    :ok = Logger.info "Session.handle_call :keepalive :start KeepAlive=#{inspect s.keep_alive}"
+    :ok = Logger.info inspect(s.transport)
     x = :inet.getstat(s.socket, [:recv_oct])
-    Logger.info inspect(x)
+    :ok = Logger.info inspect(x)
     Osumiex.Mqtt.KeepAlive.new()
     {:reply, :ok, s}
   end
   def handle_call({:resume, socket, transport, client_pid}, _from, state) do
-    :erlang.cancel_timer(state.expire_timer)
+    _time = :erlang.cancel_timer(state.expire_timer)
     true = Process.link(client_pid)
     {:reply, :ok, %{state | socket: socket, transport: transport, client_pid: client_pid, expire_timer: nil}}
   end
@@ -45,25 +45,25 @@ defmodule Osumiex.Mqtt.Session do
     {:reply, :ok, new_state};
   end
   def handle_call(msg, _from, state) do
-    Logger.info "Session.handle_call called #{inspect msg}"
+    :ok = Logger.info "Session.handle_call called #{inspect msg}"
     {:reply, :ok, state}
   end
 
   def handle_info({:EXIT, client_pid, _reason}=_data, state) do
-    Logger.debug "Client exit #{inspect client_pid}"
+    :ok = Logger.debug "Client exit #{inspect client_pid}"
     timer = Process.send_after(self(), :session_expired, state.expires * 1000)
     {:noreply, %{state | socket: nil, transport: nil, client_pid: nil, expire_timer: timer}};
   end
   def handle_info(:session_expired, %Osumiex.Mqtt.Message.Session{client_id: client_id} = state) do
-    Logger.info "Session expired #{inspect client_id}"
+    :ok = Logger.info "Session expired #{inspect client_id}"
     {:stop, :normal, state};
   end
   def handle_info({:dispatch, {_from, %Osumiex.Mqtt.Message.Publish{}=message}}, s) do
-    Logger.debug "Dispatched message :[#{inspect message}]"
+    :ok = Logger.debug "Dispatched message :[#{inspect message}]"
     {:noreply, dispatch(message, s)}
   end
   def handle_info(msg, s) do
-    Logger.debug "Session.handle_info called unknown[#{inspect msg}]"
+    :ok = Logger.debug "Session.handle_info called unknown[#{inspect msg}]"
     {:noreply, s}
   end
 
@@ -95,7 +95,7 @@ defmodule Osumiex.Mqtt.Session do
     {:ok, %{state | subscribes: subscribes}};
   end
   def subscribe(session_pid, topics) do
-    Logger.info("Session subscribe called #{inspect topics}")
+    :ok = Logger.info("Session subscribe called #{inspect topics}")
     :ok = GenServer.call(session_pid, {:subscribe, topics})
     :ok
   end
@@ -115,7 +115,7 @@ defmodule Osumiex.Mqtt.Session do
   So store a message to send message when client online.
   """
   def dispatch(_message, %Osumiex.Mqtt.Message.Session{client_id: nil} = state) do
-    Logger.debug("Have to queue messages")
+    :ok = Logger.debug("Have to queue messages")
     state
   end
   def dispatch(

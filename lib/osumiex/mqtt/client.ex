@@ -27,24 +27,24 @@ defmodule Osumiex.Mqtt.Client do
   def handle_info({:tcp, socket, data}, client_state(socket: socket, transport: transport)=state) do
     :ok = transport.setopts(socket, [{:active, :once}])
     request_data = Osumiex.Mqtt.Decoder.decode(data)
-    Logger.info("******************************************************")
-    Logger.info("******** Decoded      : [#{inspect request_data}]")
-    Logger.info("******** Request type : [#{request_data.message_type}]")
+    :ok = Logger.info("******************************************************")
+    :ok = Logger.info("******** Decoded      : [#{inspect request_data}]")
+    :ok = Logger.info("******** Request type : [#{request_data.message_type}]")
     state = do_response(socket, transport, request_data, state)
     {:noreply, state}
   end
   def handle_info({:tcp_closed, socket}, client_state(socket: socket, transport: _transport)=state) do
-    Logger.info('connection close')
+    :ok = Logger.info('connection close')
     {:stop, :normal, state};
   end
   def handle_info({:dispatch, {_pid, %Osumiex.Mqtt.Message.Publish{qos: :fire_and_forget} = message}}, client_state(socket: socket, transport: transport)=state) do
-    Logger.info("Client dispatch")
+    :ok = Logger.info("Client dispatch")
     response_data = message |> Osumiex.Mqtt.Encoder.encode
     transport.send(socket, response_data)
     {:noreply, state}
   end
   def handle_info(data, state) do
-    Logger.info("Received unknown data : [#{inspect data}]")
+    :ok = Logger.info("Received unknown data : [#{inspect data}]")
     {:noreply, state}
   end
 
@@ -74,31 +74,33 @@ defmodule Osumiex.Mqtt.Client do
   def do_response(socket, transport, %Osumiex.Mqtt.Message.PingReq{}, state) do
     ping_resp = Osumiex.Mqtt.Message.ping_resp()
     recved_oct = :inet.getstat(socket, [:recv_oct])
-    Logger.info("Packer recv oct : #{inspect(recved_oct)}")
+    :ok = Logger.info("Packer recv oct : #{inspect(recved_oct)}")
     response_data = ping_resp |> Osumiex.Mqtt.Encoder.encode
     transport.send(socket, response_data)
     state
   end
   ### Subscribe ###
-  def do_response(socket, transport, %Osumiex.Mqtt.Message.Subscribe{topics: topics} = message, client_state(session_pid: session_pid) = state) do
-    Logger.debug "[Subscribe]****************************************"
-    Logger.debug "* Topic       : #{inspect(topics)}"
-    Logger.debug "* Session PID : #{inspect(session_pid)}"
+  def do_response(socket, transport,
+                  %Osumiex.Mqtt.Message.Subscribe{topics: topics, message_id: message_id},
+                  client_state(session_pid: session_pid) = state) do
+    :ok = Logger.debug "[Subscribe]****************************************"
+    :ok = Logger.debug "* Topic       : #{inspect(topics)}"
+    :ok = Logger.debug "* Session PID : #{inspect(session_pid)}"
     :ok = Osumiex.Mqtt.Session.subscribe(session_pid, topics)
-    sub_ack = Osumiex.Mqtt.Message.sub_ack(message.message_id, topics)
+    sub_ack = Osumiex.Mqtt.Message.sub_ack(message_id, topics)
     response_data = sub_ack |> Osumiex.Mqtt.Encoder.encode
     transport.send(socket, response_data)
     state
   end
   ### Publish ###
   def do_response(_socket, _transport, %Osumiex.Mqtt.Message.Publish{} = message, client_state() = state) do
-    Logger.debug("* PublishMessage : #{inspect message}")
+    :ok = Logger.debug("* PublishMessage : #{inspect message}")
     publish(message, state)
     state
   end
   ### Not support ###
   def do_response(_socket, _transport, _message, state) do
-    Logger.info("Not supported message : #{inspect _message}")
+    :ok = Logger.info("Not supported message : #{inspect _message}")
     state
   end
 

@@ -2,10 +2,20 @@ defmodule Osumiex.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :osumiex,
-     version: "0.0.1",
-     elixir: "~> 1.1-dev",
-     deps: deps]
+    [
+      app: :osumiex,
+      version: "0.0.1",
+      elixir: "~> 1.1-dev",
+      deps: deps,
+      dialyzer: [
+        plt_add_apps: [:mnesia],
+        flags: [
+            "-Wunmatched_returns","-Werror_handling","-Wrace_conditions",
+            "-Wno_opaque"
+            #"-Wunderspecs", "-Woverspecs"
+        ]
+      ]
+    ]
   end
 
   # Configuration for the OTP application
@@ -27,8 +37,7 @@ defmodule Osumiex.Mixfile do
   # Type `mix help deps` for more examples and options
   defp deps do
     [
-      {:ranch, github: "ninenines/ranch", tag: "master"},
-      {:exlager, github: "khia/exlager", tag: "master"}
+      {:ranch, github: "ninenines/ranch", tag: "master"}
     ]
   end
 end
