@@ -27,10 +27,10 @@ defmodule Osumiex.Mqtt.Topic do
   def topic_trie_fields, do: @topic_trie_fields
   def topic_fields, do: @topic_fields
 
-
   #
   # Topic type : direct or wildcard.
   #
+  @spec type(binary) :: :direct | :wildcard
   def type(name) when is_binary(name) do
     type(%Osumiex.Mqtt.Message.Topic{name: name})
   end
@@ -38,6 +38,7 @@ defmodule Osumiex.Mqtt.Topic do
     type2(name)
   end
 
+  @spec type2(binary) :: :direct | :wildcard
   defp type2(""), do: :direct
   defp type2(<<?+::size(8), _rest::binary>>), do: :wildcard
   defp type2(<<?#::size(8), _rest::binary>>), do: :wildcard
@@ -48,6 +49,7 @@ defmodule Osumiex.Mqtt.Topic do
   # ------------------------------------------------------------------------
   # Topic validate
   # ------------------------------------------------------------------------
+  @spec validate({atom, binary}) :: boolean
   def validate({_, <<>>}), do: false
   def validate({_, topic}) when is_binary(topic) and (byte_size(topic) > @topic_max_length), do: false
   def validate({:direct, topic}) do
@@ -57,6 +59,7 @@ defmodule Osumiex.Mqtt.Topic do
     validate2(words(topic))
   end
 
+  @spec validate(list) :: boolean
   defp validate2([]), do: true
   defp validate2([<<?#::size(8)>>]), do: true
   defp validate2([<<?#::size(8)>> | rest]) when byte_size(rest) > 0, do: false
@@ -69,6 +72,7 @@ defmodule Osumiex.Mqtt.Topic do
     end
   end
 
+  @spec validate(binary) :: boolean
   defp validate3(<<>>) do
     true
   end

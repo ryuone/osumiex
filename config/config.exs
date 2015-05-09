@@ -33,5 +33,5 @@ config :exlager,
   truncation_size: 8096
 
 config :logger, :console,
-  format: "\n$date $time [$level] $metadata$message",
+  format: "$date $time [$level] $metadata$message\n",
   metadata: [:user_id]
