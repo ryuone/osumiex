@@ -73,7 +73,6 @@ defmodule Osumiex.Mqtt.PubSub do
     {:noreply, state}
   end
 
-
   def terminate(_Reason, _State) do
     :mnesia.unsubscribe({:table, :topic, :simple})
     :mnesia.unsubscribe({:table, :topic_subscriber, :simple})

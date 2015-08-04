@@ -26,6 +26,10 @@ defmodule Osumiex.Mqtt.Encoder do
     len = byte_size(topic) + byte_size(msg_id) + byte_size(message)
     <<encode_header(message_type, false, qos, false, len) :: binary, topic::binary, msg_id :: binary, message::binary>>
   end
+  def encode(message) do
+    Logger.info("Unknown encoded message!!")
+    Logger.info(inspect(message))
+  end
 
   @spec encode_header(atom, boolean, atom, boolean, number) :: binary
   defp encode_header(type, dup, qos, retain, length) do

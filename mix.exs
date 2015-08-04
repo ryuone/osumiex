@@ -37,7 +37,9 @@ defmodule Osumiex.Mixfile do
   # Type `mix help deps` for more examples and options
   defp deps do
     [
-      {:ranch, github: "ninenines/ranch", tag: "master"}
+      {:ranch, github: "ninenines/ranch", tag: "master"},
+      {:earmark, "~> 0.1", only: :dev},
+      {:ex_doc, "~> 0.7", only: :dev}
     ]
   end
 end

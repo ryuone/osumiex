@@ -35,8 +35,11 @@ defmodule Osumiex.Mqtt.Session do
     Osumiex.Mqtt.KeepAlive.new()
     {:reply, :ok, s}
   end
-  def handle_call({:resume, socket, transport, client_pid}, _from, state) do
-    _time = :erlang.cancel_timer(state.expire_timer)
+  def handle_call({:resume, socket, transport, client_pid}, _from, %Osumiex.Mqtt.Message.Session{expire_timer: nil} = state) do
+    {:reply, :ok, state}
+  end
+  def handle_call({:resume, socket, transport, client_pid}, _from, %Osumiex.Mqtt.Message.Session{expire_timer: expire_timer} = state) do
+    _time = :erlang.cancel_timer(expire_timer)
     true = Process.link(client_pid)
     {:reply, :ok, %{state | socket: socket, transport: transport, client_pid: client_pid, expire_timer: nil}}
   end

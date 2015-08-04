@@ -62,4 +62,10 @@ defmodule Osumiex.Mqtt.Utils.Log do
     :ok = Logger.debug("Subscribe - topics     : #{inspect(topics)}");
     subscribe_message
   end
+
+  @spec info(Osumiex.Mqtt.Message.Disconnect.t) :: Osumiex.Mqtt.Message.Disconnect.t
+  def info(%Osumiex.Mqtt.Message.Disconnect{}=disconnect_message) do
+    :ok = Logger.debug("Disconnect.")
+    disconnect_message
+  end
 end

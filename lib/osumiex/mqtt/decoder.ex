@@ -37,6 +37,9 @@ defmodule Osumiex.Mqtt.Decoder do
   defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :subscribe, body: body} = header) do
     decode_subscribe(header, body) |> Osumiex.Mqtt.Utils.Log.info
   end
+  defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :disconnect} = header) do
+    decode_disconnect(header) |> Osumiex.Mqtt.Utils.Log.info
+  end
   defp decode_msg(%Osumiex.Mqtt.Message.Header{type: type} = _msg) do
     :ok = Logger.info("2)type : #{type}")
   end
@@ -87,7 +90,15 @@ defmodule Osumiex.Mqtt.Decoder do
     Osumiex.Mqtt.Message.ping_req()
   end
 
+  @spec decode_disconnect(Osumiex.Mqtt.Message.Header.t) :: Osumiex.Mqtt.Message.Disconnect.t
+  defp decode_disconnect(%Osumiex.Mqtt.Message.Header{}) do
+    Osumiex.Mqtt.Message.disconnect()
+  end
+
+  @spec topics(binary) :: [{binary, atom}]
   defp topics(topics), do: topics(topics, [])
+
+  @spec topics(binary, list) :: [{binary, atom}]
   defp topics(<<>>, acc), do: acc |> Enum.reverse
   defp topics(<<topic_len :: integer-unsigned-size(16), topic :: binary-size(topic_len),
               _ :: size(6), qos :: size(2), rest :: binary>> = _payload, acc) do

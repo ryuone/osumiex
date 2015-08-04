@@ -1,5 +1,8 @@
 defmodule Osumiex.Mqtt.Message do
 
+  ###========================================================
+  ### MQTT : Header
+  ###========================================================
   defmodule Header do
     @moduledoc """
     Defines the fixed header of a MQTT message.
@@ -20,20 +23,23 @@ defmodule Osumiex.Mqtt.Message do
             qos: qos, retain: retain, len: len, body: body}
   end
 
+  ###========================================================
+  ### MQTT : Connect
+  ###========================================================
   defmodule Connect do
-    defstruct message_type: :connect, # :: atom
-      client_id: "", # :: binary,
-      user_name: "", # :: binary,
-      password: "", # :: binary,
-      version: 3, #
+    defstruct message_type: :connect,
+      client_id: "",
+      user_name: "",
+      password: "",
+      version: 3,
       keep_alive:  :infinity, # or the keep-alive in milliseconds (=1000*mqtt-keep-alive)
       # keep_alive_server: :infinity, # or 1.5 * keep-alive in milliseconds (=1500*mqtt-keep-alive)
-      last_will: false, # :: boolean,
-      will_qos: :fire_and_forget, # :: Mqttex.qos_type,
-      will_retain: false, # :: boolean,
-      will_topic: "", # :: binary,
-      will_message: "", # :: binary,+
-      clean_session: true # :: boolean,
+      last_will: false,
+      will_qos: :fire_and_forget,
+      will_retain: false,
+      will_topic: "",
+      will_message: "",
+      clean_session: true
     @type client_id :: String.t
     @type t :: %__MODULE__{}
   end
@@ -55,12 +61,18 @@ defmodule Osumiex.Mqtt.Message do
     }
   end
 
+  ###========================================================
+  ### MQTT : Connect Ack
+  ###========================================================
   defmodule ConnAck do
     defstruct message_type: :conn_ack,
       status: :ok
   end
   def conn_ack(status \\ :ok), do: %ConnAck{status: status}
 
+  ###========================================================
+  ### MQTT : Publish
+  ###========================================================
   defmodule Publish do
     defstruct message_type: :publish,
       qos: :fire_and_forget,
@@ -83,6 +95,9 @@ defmodule Osumiex.Mqtt.Message do
     }
   end
 
+  ###========================================================
+  ### MQTT : Subscribe
+  ###========================================================
   defmodule Subscribe do
     defstruct message_type: :subscribe,
       qos: :fire_and_forget,
@@ -100,6 +115,9 @@ defmodule Osumiex.Mqtt.Message do
     }
   end
 
+  ###========================================================
+  ### MQTT : Subscribe Ack
+  ###========================================================
   defmodule SubAck do
     defstruct message_type: :sub_ack,
       message_id: 0,
@@ -128,8 +146,18 @@ defmodule Osumiex.Mqtt.Message do
   ###========================================================
   defmodule PingRes do
     defstruct message_type: :ping_resp
+    @type t :: %__MODULE__{}
   end
   def ping_resp(), do: %PingRes{}
+
+  ###========================================================
+  ### MQTT : 3.14 Disconnect
+  ###========================================================
+  defmodule Disconnect do
+    defstruct message_type: :disconnect
+    @type t :: %__MODULE__{}
+  end
+  def disconnect(), do: %Disconnect{}
 
   ###========================================================
   ### State : Session
