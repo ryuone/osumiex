@@ -1,5 +1,11 @@
 # TODO list
 
+## Read this
+
+* [MQTT Version 3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html)
+
+## Features
+
 * Qos0,1,2対応
     * ダウングレード
     * リトライ回数
@@ -23,3 +29,4 @@
 * クラスタ
 
 [^1]: Will
+
