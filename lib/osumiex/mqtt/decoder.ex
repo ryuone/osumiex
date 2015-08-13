@@ -5,13 +5,11 @@ defmodule Osumiex.Mqtt.Decoder do
   @type next_byte_fun :: (() -> {binary, next_byte_fun})
 
   def decode(<< header_msg :: binary-size(2), body_msg :: binary >>) do
-    msg = decode_header(header_msg, body_msg)
-
-    decode_msg(msg)
+    decode_header(header_msg, body_msg) |> decode_msg
   end
 
-  defp decode_header(<<type :: size(4), dup :: size(1), qos :: size(2),
-                    retain :: size(1), len :: size(8)>>, body_msg) do
+  defp decode_header(<<type :: size(4), dup :: size(1), qos :: size(2), retain :: size(1),
+                     len :: size(8)>>, body_msg) do
     {len, body_msg} = binary_to_len(<<len>>, body_msg)
 
     Osumiex.Mqtt.Message.header(
@@ -25,84 +23,137 @@ defmodule Osumiex.Mqtt.Decoder do
   end
 
   # Connect
-  defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :connect, body: body} = _header) do
-    decode_connect(body) |> Osumiex.Mqtt.Utils.Log.info
+  defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :connect, body: body, len: len} = header) do
+    decode_connect(header, len, body) |> Osumiex.Mqtt.Utils.Log.info
   end
-  defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :ping_req} = _header) do
-    decode_ping_req()
+  defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :ping_req} = header) do
+    decode_ping_req(header)
   end
-  defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :publish, body: body} = header) do
-    decode_publish(header, body) |> Osumiex.Mqtt.Utils.Log.info
+  defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :pub_ack, body: body, len: len} = header) do
+    decode_pub_ack(header, len, body)
   end
-  defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :subscribe, body: body} = header) do
-    decode_subscribe(header, body) |> Osumiex.Mqtt.Utils.Log.info
+  defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :publish, body: body, len: len} = header) do
+    decode_publish(header, len, body) |> Osumiex.Mqtt.Utils.Log.info
   end
-  defp decode_msg(%Osumiex.Mqtt.Message.Header{type: :disconnect} = header) do
+  defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :subscribe, body: body, len: len} = header) do
+    decode_subscribe(header, len, body) |> Osumiex.Mqtt.Utils.Log.info
+  end
+  defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :disconnect} = header) do
     decode_disconnect(header) |> Osumiex.Mqtt.Utils.Log.info
   end
-  defp decode_msg(%Osumiex.Mqtt.Message.Header{type: type} = _msg) do
+  defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: type} = _msg) do
     :ok = Logger.info("2)type : #{type}")
   end
 
   # Create connect message.
-  defp decode_connect(<<client_id_len :: integer-unsigned-size(16),
-                     _client_id :: binary-size(client_id_len), version :: size(8),
-                     flags :: size(8), keep_alive :: size(16), rest::binary>>) do
+  defp decode_connect(header, len, body) do
+    <<payload :: binary-size(len), _rest :: binary>> = body
+    {proto_name, payload} = utf8(payload)
+    <<proto_version :: size(8), payload::binary>> = payload
 
-    # parse flag
-    <<user_flag :: size(1), pass_flag :: size(1), w_retain :: size(1), w_qos :: size(2),
-      w_flag :: size(1), clean :: size(1), _ ::size(1)>> = <<flags>>
+    <<user_flag     :: size(1),
+      pass_flag     :: size(1),
+      will_retain   :: size(1),
+      will_qos      :: size(2),
+      will_flag     :: size(1),
+      clean_session :: size(1),
+      _reserved     :: size(1),
+      keep_alive    :: big-size(16),
+      payload       :: binary>> = payload
 
-    {client_id, payload} = pick_1head(1, utf8_list(rest))
-    {will_topic, will_message, payload} = pick_2head(w_flag, payload)
-    {user_name, payload} = pick_1head(user_flag, payload)
-    {password, _payload} = pick_1head(pass_flag, payload)
+    {client_id,    payload} = utf8(payload)
+    {will_topic,   payload} = utf8(payload, will_flag)
+    {will_message, payload} = utf8(payload, will_flag)
+    {username,     payload} = utf8(payload, user_flag)
+    {password,    _payload} = utf8(payload, pass_flag)
 
-    Osumiex.Mqtt.Message.connect(client_id, user_name, password,
-                                 version,
-                                 keep_alive,
-                                 (w_flag == 1),
-                                 binary_to_mqtt_qos(w_qos),
-                                 (w_retain == 1),
-                                 will_topic,
-                                 will_message,
-                                 (clean == 1))
+    variable = Osumiex.Mqtt.Message.connect(
+                 client_id,
+                 username,
+                 password,
+                 proto_version,
+                 proto_name,
+                 keep_alive,
+                 will_flag,
+                 binary_to_mqtt_qos(will_qos),
+                 will_retain,
+                 will_topic,
+                 will_message,
+                 clean_session
+               )
+    Osumiex.Mqtt.Message.message(header, variable, body)
   end
 
-  defp decode_publish(%Osumiex.Mqtt.Message.Header{dup: dup, retain: retain, qos: qos},
-                      <<topic_len :: integer-unsigned-size(16), topic :: binary-size(topic_len),
-                      message :: binary>>) when qos == :fire_and_forget do
-    Osumiex.Mqtt.Message.publish(qos, dup, retain, topic, 0, message)
+  defp decode_publish(%Osumiex.Mqtt.Message.FixedHeader{dup: dup, retain: retain, qos: qos} = header,
+                      len, body) when qos == :qos_0 do
+
+    <<payload :: binary-size(len), _rest :: binary>> = body
+    <<topic_len :: big-size(16), topic :: binary-size(topic_len), payload::binary>> = payload
+    
+    Logger.info("(QoS0)topic_len : #{inspect topic_len}");
+    Logger.info("(QoS0)topic     : #{inspect topic}");
+    Logger.info("(QoS0)payload   : #{inspect payload}");
+
+    variable = Osumiex.Mqtt.Message.publish(qos, dup, retain, topic, payload)
+    Osumiex.Mqtt.Message.message(header, variable, body)
   end
-  defp decode_publish(%Osumiex.Mqtt.Message.Header{dup: dup, retain: retain, qos: qos},
-                      <<topic_len :: integer-unsigned-size(16), topic :: binary-size(topic_len),
-                      message_id :: integer-unsigned-size(16), message :: binary>>) do
-    Osumiex.Mqtt.Message.publish(qos, dup, retain, topic, message_id, message)
+  defp decode_publish(%Osumiex.Mqtt.Message.FixedHeader{dup: dup, retain: retain, qos: qos} = header,
+                      len, body) when qos == :qos_1 do
+
+    <<payload :: binary-size(len), _rest :: binary>> = body
+    <<topic_len :: big-size(16), topic :: binary-size(topic_len), payload::binary>> = payload
+    <<packet_id :: big-size(16), payload :: binary>> = payload
+
+    Logger.info("(QoS1)topic_len : #{inspect topic_len}");
+    Logger.info("(Qos1)topic     : #{inspect topic}");
+    Logger.info("(Qos1)packet_id : #{inspect packet_id}");
+    Logger.info("(Qos1)payload   : #{inspect payload}");
+
+    variable = Osumiex.Mqtt.Message.publish(qos, dup, retain, topic, packet_id, payload)
+    Osumiex.Mqtt.Message.message(header, variable, body)
   end
 
-  defp decode_subscribe(%Osumiex.Mqtt.Message.Header{dup: dup, qos: qos},
-                        <<message_id :: integer-unsigned-size(16), payload :: binary>>) do
-    Osumiex.Mqtt.Message.subscribe(qos, dup, message_id, topics(payload))
+  defp decode_subscribe(header, len, body) do
+    <<payload :: binary-size(len), _rest :: binary>> = body
+    <<packet_id :: big-size(16), payload :: binary>> = payload
+
+    :qos_1 = header.qos
+
+    topics = parse_topics(payload)
+
+    variable = Osumiex.Mqtt.Message.subscribe(packet_id, topics)
+    Osumiex.Mqtt.Message.message(header, variable, body)
   end
 
-  @spec decode_ping_req() :: Osumiex.Mqtt.Message.PingReq.t
-  defp decode_ping_req() do
-    Osumiex.Mqtt.Message.ping_req()
+  ### 4. PUBACK ###
+  defp decode_pub_ack(header, len, body) do
+    <<payload :: binary-size(len), _rest :: binary>> = body
+    <<packet_id :: big-size(16), payload :: binary>> = payload
+
+    variable = Osumiex.Mqtt.Message.pub_ack(packet_id)
+    Osumiex.Mqtt.Message.message(header, variable, nil)
   end
 
-  @spec decode_disconnect(Osumiex.Mqtt.Message.Header.t) :: Osumiex.Mqtt.Message.Disconnect.t
-  defp decode_disconnect(%Osumiex.Mqtt.Message.Header{}) do
-    Osumiex.Mqtt.Message.disconnect()
+  @spec decode_ping_req(Osumiex.Mqtt.Message.FixedHeader) :: Osumiex.Mqtt.Message.PingReq.t
+  defp decode_ping_req(header) do
+    variable = Osumiex.Mqtt.Message.ping_req()
+    Osumiex.Mqtt.Message.message(header, variable, nil)
   end
 
-  @spec topics(binary) :: [{binary, atom}]
-  defp topics(topics), do: topics(topics, [])
+  @spec decode_disconnect(Osumiex.Mqtt.Message.FixedHeader.t) :: Osumiex.Mqtt.Message.t
+  defp decode_disconnect(header) do
+    variable = Osumiex.Mqtt.Message.disconnect()
+    Osumiex.Mqtt.Message.message(header, variable, nil)
+  end
 
-  @spec topics(binary, list) :: [{binary, atom}]
-  defp topics(<<>>, acc), do: acc |> Enum.reverse
-  defp topics(<<topic_len :: integer-unsigned-size(16), topic :: binary-size(topic_len),
+  @spec parse_topics(binary) :: [{binary, atom}]
+  defp parse_topics(topics), do: parse_topics(topics, [])
+
+  @spec parse_topics(binary, list) :: [{binary, atom}]
+  defp parse_topics(<<>>, acc), do: acc |> Enum.reverse
+  defp parse_topics(<<topic_len :: integer-unsigned-size(16), topic :: binary-size(topic_len),
               _ :: size(6), qos :: size(2), rest :: binary>> = _payload, acc) do
-    topics(rest, [{topic, binary_to_mqtt_qos(qos)} | acc])
+    parse_topics(rest, [{topic, binary_to_mqtt_qos(qos)} | acc])
   end
 
   @spec binary_to_len(binary, binary) :: {integer, binary}
@@ -136,6 +187,9 @@ defmodule Osumiex.Mqtt.Decoder do
     {content, rest} = utf8(binary)
     utf8_list(rest, [content | acc])
   end
+
+  def utf8(bin, 0), do: {nil, bin}
+  def utf8(bin, _), do: utf8(bin)
 
   def utf8(<<length :: integer-unsigned-size(16), content :: bytes-size(length), rest :: binary>>) do
     {content, rest}

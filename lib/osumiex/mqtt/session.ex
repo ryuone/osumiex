@@ -106,7 +106,12 @@ defmodule Osumiex.Mqtt.Session do
   @doc """
   Publish
   """
-  def publish(_session_pid, {:fire_and_forget, %Osumiex.Mqtt.Message.Publish{} = message}) do
+  def publish(_session_pid, {:qos_0, %Osumiex.Mqtt.Message.Publish{} = message}) do
+    Osumiex.Mqtt.PubSub.publish(message)
+    :ok
+  end
+  def publish(_session_pid, {:qos_1, %Osumiex.Mqtt.Message.Publish{} = message}) do
+    Logger.debug("QoS1 : publish [#{inspect message}]");
     Osumiex.Mqtt.PubSub.publish(message)
     :ok
   end
@@ -122,7 +127,15 @@ defmodule Osumiex.Mqtt.Session do
     state
   end
   def dispatch(
-          %Osumiex.Mqtt.Message.Publish{qos: :fire_and_forget} = message,
+          %Osumiex.Mqtt.Message.Publish{qos: :qos_0} = message,
+          %Osumiex.Mqtt.Message.Session{client_pid: client_pid} = state
+    ) do
+    send client_pid, {:dispatch, {self(), message}}
+    state
+  end
+
+  def dispatch(
+          %Osumiex.Mqtt.Message.Publish{qos: :qos_1} = message,
           %Osumiex.Mqtt.Message.Session{client_pid: client_pid} = state
     ) do
     send client_pid, {:dispatch, {self(), message}}

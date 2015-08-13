@@ -7,10 +7,14 @@ defmodule Osumiex.Mqtt.Utils.Log do
 
   require Logger
 
+  def info(%Osumiex.Mqtt.Message{}=message) do
+    message
+  end
+
   @spec info(Osumiex.Mqtt.Message.Connect.t) :: Osumiex.Mqtt.Message.Connect.t
   def info(%Osumiex.Mqtt.Message.Connect{
              client_id: client_id,
-             version: version,
+             proto_version: proto_version,
              keep_alive: keep_alive,
              last_will: last_will,
              will_qos: will_qos,
@@ -20,7 +24,7 @@ defmodule Osumiex.Mqtt.Utils.Log do
              clean_session: clean_session
            }=connect_message) do
     :ok = Logger.debug("Connect - client_id     : #{client_id}")
-    :ok = Logger.debug("Connect - version       : #{version}")
+    :ok = Logger.debug("Connect - proto_version : #{proto_version}")
     :ok = Logger.debug("Connect - keep_alive    : #{keep_alive}")
     :ok = Logger.debug("Connect - last_will     : #{last_will}")
     :ok = Logger.debug("Connect - will_qos      : #{will_qos}")
@@ -37,29 +41,25 @@ defmodule Osumiex.Mqtt.Utils.Log do
             dup: dup,
             retain: retain,
             topic: topic,
-            message_id: message_id,
+            packet_id: packet_id,
             message: message
           }=publish_message) do
     :ok = Logger.debug("Publish - qos        : #{qos}")
     :ok = Logger.debug("Publish - dup        : #{dup}")
     :ok = Logger.debug("Publish - retain     : #{retain}")
     :ok = Logger.debug("Publish - topic      : #{topic}");
-    :ok = Logger.debug("Publish - message_id : #{message_id}");
+    :ok = Logger.debug("Publish - packet_id  : #{packet_id}");
     :ok = Logger.debug("Publish - message    : #{message}")
     publish_message
   end
 
   @spec info(Osumiex.Mqtt.Message.Subscribe.t) :: Osumiex.Mqtt.Message.Subscribe.t
   def info(%Osumiex.Mqtt.Message.Subscribe{
-            qos: qos,
-            dup: dup,
-            message_id: message_id,
+            packet_id: packet_id,
             topics: topics
           }=subscribe_message) do
-    :ok = Logger.debug("Subscribe - qos        : #{qos}")
-    :ok = Logger.debug("Subscribe - dup        : #{dup}")
-    :ok = Logger.debug("Subscribe - message_id : #{message_id}");
-    :ok = Logger.debug("Subscribe - topics     : #{inspect(topics)}");
+    :ok = Logger.debug("Subscribe - packet_id : #{packet_id}");
+    :ok = Logger.debug("Subscribe - topics    : #{inspect(topics)}");
     subscribe_message
   end
 

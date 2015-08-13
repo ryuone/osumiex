@@ -1,8 +1,8 @@
 defmodule Osumiex.Mqtt.Define do
   def qos do
     [
-      {0, :fire_and_forget},
-      {1, :at_least_once},
+      {0, :qos_0},
+      {1, :qos_1},
       {2, :exactly_once},
       {3, :reserved}
     ]
