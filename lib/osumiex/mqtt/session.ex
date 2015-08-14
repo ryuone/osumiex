@@ -18,16 +18,31 @@ defmodule Osumiex.Mqtt.Session do
     :ok = Logger.info "Session.init called [#{inspect client_pid}, #{inspect self()}]"
     Process.flag(:trap_exit, true)
     true = Process.link(client_pid)
-    {:ok, Osumiex.Mqtt.Message.session(socket, transport, connect.client_id, client_pid, connect.keep_alive, @expires)}
+    session = Osumiex.Mqtt.Message.session(
+                socket,
+                transport,
+                connect.client_id,
+                client_pid,
+                connect.keep_alive,
+                @expires
+              )
+    {:ok, session}
+  end
+
+  def handle_cast({:pub_rel, packet_id}, state) do
+    %Osumiex.Mqtt.Message.Session{await_rel: await_rel} = state
+    {message} = await_rel |> Map.get(packet_id) 
+    Osumiex.Mqtt.PubSub.publish(message)
+    {:noreply, state}
   end
 
   def handle_cast(msg, s) do
-    :ok = Logger.info "Session.handle_cast called #{inspect msg}"
+    :ok = Logger.info "Not supported session.handle_cast called #{inspect msg}"
     {:noreply, s}
   end
 
-  def handle_call({:keepalive, :start, _client_pid}, _from, s) do
-    :ok = Logger.info "Session.handle_call :keepalive :start #{inspect _from}"
+  def handle_call({:keepalive, :start, _client_pid}, from, s) do
+    :ok = Logger.info "Session.handle_call :keepalive :start #{inspect from}"
     :ok = Logger.info "Session.handle_call :keepalive :start KeepAlive=#{inspect s.keep_alive}"
     :ok = Logger.info inspect(s.transport)
     x = :inet.getstat(s.socket, [:recv_oct])
@@ -35,7 +50,7 @@ defmodule Osumiex.Mqtt.Session do
     Osumiex.Mqtt.KeepAlive.new()
     {:reply, :ok, s}
   end
-  def handle_call({:resume, socket, transport, client_pid}, _from, %Osumiex.Mqtt.Message.Session{expire_timer: nil} = state) do
+  def handle_call({:resume, _socket, _transport, _client_pid}, _from, %Osumiex.Mqtt.Message.Session{expire_timer: nil} = state) do
     {:reply, :ok, state}
   end
   def handle_call({:resume, socket, transport, client_pid}, _from, %Osumiex.Mqtt.Message.Session{expire_timer: expire_timer} = state) do
@@ -46,6 +61,12 @@ defmodule Osumiex.Mqtt.Session do
   def handle_call({:subscribe, topics}, _from, state) do
     {:ok, new_state} = subscribe(state, topics)
     {:reply, :ok, new_state};
+  end
+  def handle_call({:publish, %Osumiex.Mqtt.Message.Publish{packet_id: packet_id, qos: qos} = message}, _from, state) when qos == :qos_2 do
+    %Osumiex.Mqtt.Message.Session{await_rel: await_rel} = state
+    # TODO: Remove this message when PUBREL received.
+    await_rel = await_rel |> Map.put(packet_id, {message})
+    {:reply, :ok, %{state | await_rel: await_rel}};
   end
   def handle_call(msg, _from, state) do
     :ok = Logger.info "Session.handle_call called #{inspect msg}"
@@ -61,8 +82,15 @@ defmodule Osumiex.Mqtt.Session do
     :ok = Logger.info "Session expired #{inspect client_id}"
     {:stop, :normal, state};
   end
-  def handle_info({:dispatch, {_from, %Osumiex.Mqtt.Message.Publish{}=message}}, s) do
-    :ok = Logger.debug "Dispatched message :[#{inspect message}]"
+  def handle_info({:dispatch, {_from, %Osumiex.Mqtt.Message.Publish{qos: pub_qos}=message, sub_qos}}, s) do
+    :ok = Logger.debug "Dispatched message :[#{inspect message}] / Subscribe_Qos : #{sub_qos} / Publish_Qos : #{pub_qos}"
+    message = case is_downgrade(pub_qos, sub_qos) do
+      true ->
+        %{message | qos: sub_qos}
+      false ->
+        message
+    end
+    :ok = Logger.debug "Dispatched message :[#{inspect message}] / Subscribe_Qos : #{sub_qos} / Publish_Qos : #{pub_qos}"
     {:noreply, dispatch(message, s)}
   end
   def handle_info(msg, s) do
@@ -74,6 +102,13 @@ defmodule Osumiex.Mqtt.Session do
   ##############################################################################
   # APIs
   ##############################################################################
+
+  defp is_downgrade(pub_qos, sub_qos) do
+    qos1 = Osumiex.Mqtt.Encoder.mqtt_qos_to_binary(pub_qos)
+    qos2 = Osumiex.Mqtt.Encoder.mqtt_qos_to_binary(sub_qos)
+    Logger.debug("qos1:qos2 -> #{qos1}:#{qos2}");
+    qos1 > qos2
+  end
 
   @doc """
   Session functions
@@ -115,6 +150,12 @@ defmodule Osumiex.Mqtt.Session do
     Osumiex.Mqtt.PubSub.publish(message)
     :ok
   end
+  def publish(session_pid, {:qos_2, %Osumiex.Mqtt.Message.Publish{} = message}) do
+    Logger.debug("QoS2 : publish [#{inspect message}]");
+    GenServer.call session_pid, {:publish, message}
+    #    Osumiex.Mqtt.PubSub.publish(message)
+    :ok
+  end
 
   @doc """
   Dispatch message(send message) to client process.
@@ -136,6 +177,13 @@ defmodule Osumiex.Mqtt.Session do
 
   def dispatch(
           %Osumiex.Mqtt.Message.Publish{qos: :qos_1} = message,
+          %Osumiex.Mqtt.Message.Session{client_pid: client_pid} = state
+    ) do
+    send client_pid, {:dispatch, {self(), message}}
+    state
+  end
+  def dispatch(
+          %Osumiex.Mqtt.Message.Publish{qos: :qos_2} = message,
           %Osumiex.Mqtt.Message.Session{client_pid: client_pid} = state
     ) do
     send client_pid, {:dispatch, {self(), message}}

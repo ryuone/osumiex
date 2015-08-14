@@ -5,23 +5,13 @@ defmodule Osumiex.Mqtt.Encoder do
   ##############################################################################
   # Encode MQTT messages
   ##############################################################################
+
+  ### 2. CONNACK
   def encode(%Osumiex.Mqtt.Message.ConnAck{message_type: message_type, status: status}) do
     <<mqtt_message_type_to_binary(message_type) :: size(4), 0 :: size(4), 0x02, 0x00, mqtt_conn_ack_status(status)>>
   end
-  def encode(%Osumiex.Mqtt.Message.PingRes{message_type: message_type}) do
-    <<mqtt_message_type_to_binary(message_type) :: size(4), 0 :: size(4), 0x00>>
-  end
-  def encode(%Osumiex.Mqtt.Message.SubAck{message_type: message_type, packet_id: packet_id, topics: topics}) do
-    qos_binary       = sub_ack_qos_to_binary(topics)
-    packet_id_binary = encode_packet_id(packet_id)
-    len              = byte_size(packet_id_binary) + byte_size(qos_binary)
-    <<encode_header(message_type, len) :: binary, packet_id_binary :: binary, qos_binary :: binary>>
-  end
-  def encode(%Osumiex.Mqtt.Message.PubAck{message_type: message_type, packet_id: packet_id}) do
-    packet_id_binary = encode_packet_id(packet_id)
-    len              = byte_size(packet_id_binary)
-    <<encode_header(message_type, len) :: binary, packet_id_binary :: binary>>
-  end
+
+  ### 3. PUBLISH
   def encode(%Osumiex.Mqtt.Message.Publish{message_type: message_type, topic: topic, qos: qos, message: message})
     when qos == :qos_0 do
 
@@ -39,6 +29,54 @@ defmodule Osumiex.Mqtt.Encoder do
     message          = utf8(message)
     len              = byte_size(topic) + byte_size(packet_id_binary) + byte_size(message)
     <<encode_header(message_type, false, qos, false, len) :: binary, topic::binary, packet_id_binary :: binary, message::binary>>
+  end
+  def encode(%Osumiex.Mqtt.Message.Publish{message_type: message_type, topic: topic, qos: qos, message: message, packet_id: packet_id})
+    when qos == :qos_2 do
+
+    topic            = utf8(topic)
+    packet_id_binary = encode_packet_id(packet_id)
+    message          = utf8(message)
+    len              = byte_size(topic) + byte_size(packet_id_binary) + byte_size(message)
+    <<encode_header(message_type, false, qos, false, len) :: binary, topic::binary, packet_id_binary :: binary, message::binary>>
+  end
+
+  ### 4. PUBACK
+  def encode(%Osumiex.Mqtt.Message.PubAck{message_type: message_type, packet_id: packet_id}) do
+    packet_id_binary = encode_packet_id(packet_id)
+    len              = byte_size(packet_id_binary)
+    <<encode_header(message_type, len) :: binary, packet_id_binary :: binary>>
+  end
+
+  ### 5. PUBREC
+  def encode(%Osumiex.Mqtt.Message.PubRec{message_type: message_type, packet_id: packet_id}) do
+    packet_id_binary = encode_packet_id(packet_id)
+    len              = byte_size(packet_id_binary)
+    <<encode_header(message_type, len) :: binary, packet_id_binary :: binary>>
+  end
+
+  ### 6. PUBREL
+  def encode(%Osumiex.Mqtt.Message.PubRel{message_type: message_type, packet_id: packet_id}) do
+    packet_id_binary = encode_packet_id(packet_id)
+    len              = byte_size(packet_id_binary)
+    <<encode_header(message_type, len) :: binary, packet_id_binary :: binary>>
+  end
+
+  ### 7. PUBCOMP
+  def encode(%Osumiex.Mqtt.Message.PubComp{message_type: message_type, packet_id: packet_id}) do
+    packet_id_binary = encode_packet_id(packet_id)
+    len              = byte_size(packet_id_binary)
+    <<encode_header(message_type, len) :: binary, packet_id_binary :: binary>>
+  end
+  ### 13. PINGRESP
+  def encode(%Osumiex.Mqtt.Message.PingResp{message_type: message_type}) do
+    <<mqtt_message_type_to_binary(message_type) :: size(4), 0 :: size(4), 0x00>>
+  end
+  ### 9. SUBACK
+  def encode(%Osumiex.Mqtt.Message.SubAck{message_type: message_type, packet_id: packet_id, topics: topics}) do
+    qos_binary       = sub_ack_qos_to_binary(topics)
+    packet_id_binary = encode_packet_id(packet_id)
+    len              = byte_size(packet_id_binary) + byte_size(qos_binary)
+    <<encode_header(message_type, len) :: binary, packet_id_binary :: binary, qos_binary :: binary>>
   end
   def encode(message) do
     Logger.info("Unknown encoded message!!")

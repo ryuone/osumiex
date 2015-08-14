@@ -128,10 +128,11 @@ defmodule Osumiex.Mqtt.PubSub do
 
   defp dispatch(topic, %Osumiex.Mqtt.Message.Publish{} = message) do
     subscribers = :mnesia.dirty_read(:topic_subscriber, topic)
-    :ok = Logger.info("Subscribers : [#{inspect subscribers}]")
-    subscribers |> Enum.each(fn(Osumiex.Mqtt.Topic.topic_subscriber(subscriber_pid: subscriber_pid)) ->
-      :ok = Logger.info("Subscriber Pid : #{inspect subscriber_pid}")
-      send subscriber_pid, {:dispatch, {self(), message}}
+    :ok = Logger.debug("Subscribers : [#{inspect subscribers}]")
+    subscribers |> Enum.each(fn(Osumiex.Mqtt.Topic.topic_subscriber(subscriber_pid: subscriber_pid, qos: qos)) ->
+      :ok = Logger.debug("Subscriber Pid : #{inspect subscriber_pid}")
+      :ok = Logger.debug("Qos            : #{inspect qos}")
+      send subscriber_pid, {:dispatch, {self(), message, qos}}
     end)
     length(subscribers)
   end

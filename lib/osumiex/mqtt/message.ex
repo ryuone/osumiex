@@ -136,12 +136,38 @@ defmodule Osumiex.Mqtt.Message do
   ###========================================================
   ### PUBREC(type 5: Client to Server or Server to Client))
   ###========================================================
+  defmodule PubRec do
+    defstruct message_type: :pub_rec,
+      packet_id: 0
+    @type t :: %__MODULE__{}
+  end
+  def pub_rec(packet_id) do
+    %PubRec{packet_id: packet_id}
+  end
+
   ###========================================================
   ### PUBREL(type 6: Client to Server or Server to Client)
   ###========================================================
+  defmodule PubRel do
+    defstruct message_type: :pub_rel,
+      packet_id: 0
+    @type t :: %__MODULE__{}
+  end
+  def pub_rel(packet_id) do
+    %PubRel{packet_id: packet_id}
+  end
+
   ###========================================================
   ### PUBCOMP(type 7: Client to Server or Server to Client)
   ###========================================================
+  defmodule PubComp do
+    defstruct message_type: :pub_comp,
+      packet_id: 0
+    @type t :: %__MODULE__{}
+  end
+  def pub_comp(packet_id) do
+    %PubComp{packet_id: packet_id}
+  end
 
   ###========================================================
   ### SUBSCRIBE(type 8: Subscribe)
@@ -195,11 +221,11 @@ defmodule Osumiex.Mqtt.Message do
   ###========================================================
   ### PINGRESP(type 13: Server to Client)
   ###========================================================
-  defmodule PingRes do
+  defmodule PingResp do
     defstruct message_type: :ping_resp
     @type t :: %__MODULE__{}
   end
-  def ping_resp(), do: %PingRes{}
+  def ping_resp(), do: %PingResp{}
 
   ###========================================================
   ### DISCONNECT(type 14: Client to Server)
@@ -209,10 +235,6 @@ defmodule Osumiex.Mqtt.Message do
     @type t :: %__MODULE__{}
   end
   def disconnect(), do: %Disconnect{}
-
-
-
-
 
   ###========================================================
   ### State : Session
@@ -224,6 +246,7 @@ defmodule Osumiex.Mqtt.Message do
       client_pid: nil,
       subscribes: Map.new(),
       expires: 0,
+      await_rel: Map.new(),
       keep_alive: :infinity,
       expire_timer: nil
   end

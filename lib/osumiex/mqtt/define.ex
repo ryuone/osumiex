@@ -3,7 +3,7 @@ defmodule Osumiex.Mqtt.Define do
     [
       {0, :qos_0},
       {1, :qos_1},
-      {2, :exactly_once},
+      {2, :qos_2},
       {3, :reserved}
     ]
   end
