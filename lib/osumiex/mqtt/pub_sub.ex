@@ -7,12 +7,12 @@ defmodule Osumiex.Mqtt.PubSub do
   # gen_server Function Definitions
   # ------------------------------------------------------------------
   def start_link() do
-    :ok = Logger.info "PubSub.start_link called [#{inspect self()}]"
+    :ok = Logger.info "#{__MODULE__} : PubSub.start_link called [#{inspect self()}]"
     GenServer.start_link(__MODULE__, [], name: :pub_sub)
   end
 
   def init([]) do
-    :ok = Logger.info "PubSub.init called [#{inspect self()}]"
+    :ok = Logger.info "#{__MODULE__} : PubSub.init called [#{inspect self()}]"
     Process.flag(:trap_exit, true)
     # :ok = :mnesia.create_schema([node()])
 
@@ -46,16 +46,16 @@ defmodule Osumiex.Mqtt.PubSub do
   end
 
   def handle_info({:mnesia_table_event, {:write, Osumiex.Mqtt.Topic.topic_subscriber(subscriber_pid: subscriber_pid), _activity_id}}, state) do
-    :ok = Logger.info("Mnesia Event : subsciber_pid -> #{inspect subscriber_pid}")
+    :ok = Logger.info("#{__MODULE__} : Mnesia Event : subsciber_pid -> #{inspect subscriber_pid}")
     true = Process.link(subscriber_pid)
     {:noreply, state}
   end
   def handle_info({:mnesia_table_event, _event}, state) do
-    #:ok = Logger.info("Mnesia Event : #{inspect _event}")
+    #:ok = Logger.info("#{__MODULE__} : Mnesia Event : #{inspect _event}")
     {:noreply, state}
   end
   def handle_info({:EXIT, subscriber_pid, _reason}=_data, state) do
-    :ok = Logger.info("Subscriber is down : #{inspect subscriber_pid}")
+    :ok = Logger.info("#{__MODULE__} : Subscriber is down : #{inspect subscriber_pid}")
     topic_subscribers = :mnesia.dirty_index_read(:topic_subscriber, subscriber_pid, 4)
     func = fn() ->
       for topic_subscriber <- topic_subscribers, do: :mnesia.delete_object(topic_subscriber)
@@ -69,7 +69,7 @@ defmodule Osumiex.Mqtt.PubSub do
     {:noreply, state}
   end
   def handle_info(data, state) do
-    :ok = Logger.info("Unknown handle_info data : #{inspect data}")
+    :ok = Logger.info("#{__MODULE__} : Unknown handle_info data : #{inspect data}")
     {:noreply, state}
   end
 
@@ -99,11 +99,11 @@ defmodule Osumiex.Mqtt.PubSub do
   @spec subscribe([{binary, atom}], pid) :: :ok | {:error, {:aborted, term}}
   def subscribe([], _subscriber_pid), do: :ok
   def subscribe([{topic, qos}|topics], subscriber_pid) do
-    :ok = Logger.debug "****************************************"
-    :ok = Logger.debug "* PubSub:subscribe [#{topic}] : [#{qos}]"
-    :ok = Logger.debug "* Subscriber PID : #{inspect(subscriber_pid)}"
-    :ok = Logger.debug "* Rest Topics    : #{inspect(topics)}"
-    :ok = Logger.debug "* TopicName      : #{inspect(topic)}"
+    :ok = Logger.debug "#{__MODULE__} : ****************************************"
+    :ok = Logger.debug "#{__MODULE__} : * PubSub:subscribe [#{topic}] : [#{qos}]"
+    :ok = Logger.debug "#{__MODULE__} : * Subscriber PID : #{inspect(subscriber_pid)}"
+    :ok = Logger.debug "#{__MODULE__} : * Rest Topics    : #{inspect(topics)}"
+    :ok = Logger.debug "#{__MODULE__} : * TopicName      : #{inspect(topic)}"
 
     subscriber = Osumiex.Mqtt.Topic.topic_subscriber(topic: topic, qos: qos, subscriber_pid: subscriber_pid)
     func = fn() ->
@@ -125,13 +125,14 @@ defmodule Osumiex.Mqtt.PubSub do
     end
     List.foldl(match(topic), 0, func)
   end
+  def publish(nil), do: :ok
 
   defp dispatch(topic, %Osumiex.Mqtt.Message.Publish{} = message) do
     subscribers = :mnesia.dirty_read(:topic_subscriber, topic)
-    :ok = Logger.debug("Subscribers : [#{inspect subscribers}]")
+    :ok = Logger.debug("#{__MODULE__} : Subscribers : [#{inspect subscribers}]")
     subscribers |> Enum.each(fn(Osumiex.Mqtt.Topic.topic_subscriber(subscriber_pid: subscriber_pid, qos: qos)) ->
-      :ok = Logger.debug("Subscriber Pid : #{inspect subscriber_pid}")
-      :ok = Logger.debug("Qos            : #{inspect qos}")
+      :ok = Logger.debug("#{__MODULE__} : Subscriber Pid : #{inspect subscriber_pid}")
+      :ok = Logger.debug("#{__MODULE__} : Qos            : #{inspect qos}")
       send subscriber_pid, {:dispatch, {self(), message, qos}}
     end)
     length(subscribers)
@@ -159,25 +160,25 @@ defmodule Osumiex.Mqtt.PubSub do
   end
 
   defp trie_add_path(triple={parent, word, node}) do
-    :ok = Logger.info("* Add path #{inspect(triple)}")
+    :ok = Logger.info("#{__MODULE__} : * Add path #{inspect(triple)}")
     edge = Osumiex.Mqtt.Topic.topic_trie_edge(node_id: parent, word: word)
 
     case :mnesia.read(:topic_trie_node, parent) do
       [trie_node = Osumiex.Mqtt.Topic.topic_trie_node(edge_count: count)] ->
-        :ok = Logger.info("** 3-1) count : [#{inspect count}]")
+        :ok = Logger.info("#{__MODULE__} : ** 3-1) count : [#{inspect count}]")
         case :mnesia.read(:topic_trie, edge) do
           [] ->
-            :ok = Logger.info("** 3-1-1)")
+            :ok = Logger.info("#{__MODULE__} : ** 3-1-1)")
             trie_node = Osumiex.Mqtt.Topic.topic_trie_node(trie_node, edge_count: count+1)
             topic_trie = Osumiex.Mqtt.Topic.topic_trie(edge: edge, node_id: node)
             :mnesia.write(trie_node)
             :mnesia.write(topic_trie);
           [_] ->
-            :ok = Logger.info("** 3-1-2)")
+            :ok = Logger.info("#{__MODULE__} : ** 3-1-2)")
             :ok
         end
       [] ->
-        :ok = Logger.info("** 3-2) #{inspect node}")
+        :ok = Logger.info("#{__MODULE__} : ** 3-2) #{inspect node}")
         topic_trie_node = Osumiex.Mqtt.Topic.topic_trie_node(node_id: parent, edge_count: 1)
         topic_trie = Osumiex.Mqtt.Topic.topic_trie(edge: edge, node_id: node)
         :mnesia.write(topic_trie_node)
@@ -192,12 +193,12 @@ defmodule Osumiex.Mqtt.PubSub do
     :mnesia.read(:topic_trie_node, node_id) ++ trie_match_wildcard(node_id, res_acc)
   end
   def trie_match(node_id, [w|words], res_acc) do
-    :ok = Logger.info("trie_match : node_id [#{node_id}] / w : [#{w}]")
+    :ok = Logger.info("#{__MODULE__} : trie_match : node_id [#{node_id}] / w : [#{w}]")
     func = fn(arg, acc) ->
-      :ok = Logger.info("arg : #{inspect arg} / acc : #{inspect acc}")
+      :ok = Logger.info("#{__MODULE__} : arg : #{inspect arg} / acc : #{inspect acc}")
       case :mnesia.read(:topic_trie, Osumiex.Mqtt.Topic.topic_trie_edge(node_id: node_id, word: arg)) do
         [Osumiex.Mqtt.Topic.topic_trie(node_id: child_id)] ->
-          :ok = Logger.info("loop #{inspect child_id}")
+          :ok = Logger.info("#{__MODULE__} : loop #{inspect child_id}")
           trie_match(child_id, words, acc)
         [] ->
           acc

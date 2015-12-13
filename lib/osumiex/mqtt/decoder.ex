@@ -24,6 +24,7 @@ defmodule Osumiex.Mqtt.Decoder do
 
   # 1. CONNECT
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :connect, body: body, len: len} = header) do
+    :ok = Logger.debug("#{__MODULE__} : Message type : #{header.type}")
     decode_connect(header, len, body) |> Osumiex.Mqtt.Utils.Log.info
   end
   # 3. PUBLISH
@@ -59,10 +60,10 @@ defmodule Osumiex.Mqtt.Decoder do
     decode_disconnect(header) |> Osumiex.Mqtt.Utils.Log.info
   end
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: type} = _msg) do
-    :ok = Logger.info("#{__MODULE__}:: Unkown message type : #{type}")
+    :ok = Logger.error("#{__MODULE__} : Unkown message type : #{type}")
   end
 
-  # Create connect message.
+  ### 1. CONNECT create message ###
   defp decode_connect(header, len, body) do
     <<payload :: binary-size(len), _rest :: binary>> = body
     {proto_name, payload} = utf8(payload)
@@ -98,19 +99,21 @@ defmodule Osumiex.Mqtt.Decoder do
                  will_message,
                  clean_session
                )
+
+    :ok = Logger.debug("#{__MODULE__} : #{inspect(variable)}")
     Osumiex.Mqtt.Message.message(header, variable, body)
   end
 
-  ### 3. PUBLISH
+  ### 3. PUBLISH create message ###
   defp decode_publish(%Osumiex.Mqtt.Message.FixedHeader{dup: dup, retain: retain, qos: qos} = header,
                       len, body) when qos == :qos_0 do
 
     <<payload :: binary-size(len), _rest :: binary>> = body
     <<topic_len :: big-size(16), topic :: binary-size(topic_len), payload::binary>> = payload
     
-    Logger.info("(QoS0)topic_len : #{inspect topic_len}");
-    Logger.info("(QoS0)topic     : #{inspect topic}");
-    Logger.info("(QoS0)payload   : #{inspect payload}");
+    Logger.debug("#{__MODULE__} : (QoS0)topic_len : #{inspect topic_len}");
+    Logger.debug("#{__MODULE__} : (QoS0)topic     : #{inspect topic}");
+    Logger.debug("#{__MODULE__} : (QoS0)payload   : #{inspect payload}");
 
     variable = Osumiex.Mqtt.Message.publish(qos, dup, retain, topic, payload)
     Osumiex.Mqtt.Message.message(header, variable, body)
@@ -122,15 +125,16 @@ defmodule Osumiex.Mqtt.Decoder do
     <<topic_len :: big-size(16), topic :: binary-size(topic_len), payload::binary>> = payload
     <<packet_id :: big-size(16), payload :: binary>> = payload
 
-    Logger.info("(QoS1/2)topic_len : #{inspect topic_len}");
-    Logger.info("(Qos1/2)topic     : #{inspect topic}");
-    Logger.info("(Qos1/2)packet_id : #{inspect packet_id}");
-    Logger.info("(Qos1/2)payload   : #{inspect payload}");
+    Logger.debug("#{__MODULE__} : (QoS1/2)topic_len : #{inspect topic_len}");
+    Logger.debug("#{__MODULE__} : (Qos1/2)topic     : #{inspect topic}");
+    Logger.debug("#{__MODULE__} : (Qos1/2)packet_id : #{inspect packet_id}");
+    Logger.debug("#{__MODULE__} : (Qos1/2)payload   : #{inspect payload}");
 
     variable = Osumiex.Mqtt.Message.publish(qos, dup, retain, topic, packet_id, payload)
     Osumiex.Mqtt.Message.message(header, variable, body)
   end
 
+  ### 8. SUBSCRIBE create message ###
   defp decode_subscribe(header, len, body) do
     <<payload :: binary-size(len), _rest :: binary>> = body
     <<packet_id :: big-size(16), payload :: binary>> = payload
@@ -143,7 +147,7 @@ defmodule Osumiex.Mqtt.Decoder do
     Osumiex.Mqtt.Message.message(header, variable, body)
   end
 
-  ### 4. PUBACK ###
+  ### 4. PUBACK create message ###
   defp decode_pub_ack(header, len, body) do
     <<payload :: binary-size(len), _rest :: binary>> = body
     <<packet_id :: big-size(16), _payload :: binary>> = payload
@@ -152,7 +156,7 @@ defmodule Osumiex.Mqtt.Decoder do
     Osumiex.Mqtt.Message.message(header, variable, nil)
   end
 
-  ### 5. PUBREC ###
+  ### 5. PUBREC create message ###
   defp decode_pub_rec(header, len, body) do
     <<payload :: binary-size(len), _rest :: binary>> = body
     <<packet_id :: big-size(16), _payload :: binary>> = payload
@@ -161,7 +165,7 @@ defmodule Osumiex.Mqtt.Decoder do
     Osumiex.Mqtt.Message.message(header, variable, nil)
   end
 
-  ### 6. PUBREL ###
+  ### 6. PUBREL create message ###
   defp decode_pub_rel(header, len, body) do
     <<payload :: binary-size(len), _rest :: binary>> = body
     <<packet_id :: big-size(16), _payload :: binary>> = payload
@@ -170,7 +174,7 @@ defmodule Osumiex.Mqtt.Decoder do
     Osumiex.Mqtt.Message.message(header, variable, nil)
   end
 
-  ### 7. PUBCOMP ###
+  ### 7. PUBCOMP create message ###
   defp decode_pub_comp(header, len, body) do
     <<payload :: binary-size(len), _rest :: binary>> = body
     <<packet_id :: big-size(16), _payload :: binary>> = payload
@@ -179,13 +183,14 @@ defmodule Osumiex.Mqtt.Decoder do
     Osumiex.Mqtt.Message.message(header, variable, nil)
   end
 
-  ### 12. PINGREQ ###
+  ### 12. PINGREQ create message ###
   @spec decode_ping_req(Osumiex.Mqtt.Message.FixedHeader) :: Osumiex.Mqtt.Message.PingReq.t
   defp decode_ping_req(header) do
     variable = Osumiex.Mqtt.Message.ping_req()
     Osumiex.Mqtt.Message.message(header, variable, nil)
   end
 
+  ### 14. DISCONNECT create message ###
   @spec decode_disconnect(Osumiex.Mqtt.Message.FixedHeader.t) :: Osumiex.Mqtt.Message.t
   defp decode_disconnect(header) do
     variable = Osumiex.Mqtt.Message.disconnect()

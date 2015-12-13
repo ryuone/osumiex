@@ -16,7 +16,7 @@ defmodule Osumiex.Mqtt.Utils.Log do
              client_id: client_id,
              proto_version: proto_version,
              keep_alive: keep_alive,
-             last_will: last_will,
+             will_flag: will_flag,
              will_qos: will_qos,
              will_retain: will_retain,
              will_topic: will_topic,
@@ -26,7 +26,7 @@ defmodule Osumiex.Mqtt.Utils.Log do
     :ok = Logger.debug("Connect - client_id     : #{client_id}")
     :ok = Logger.debug("Connect - proto_version : #{proto_version}")
     :ok = Logger.debug("Connect - keep_alive    : #{keep_alive}")
-    :ok = Logger.debug("Connect - last_will     : #{last_will}")
+    :ok = Logger.debug("Connect - will_flag     : #{will_flag}")
     :ok = Logger.debug("Connect - will_qos      : #{will_qos}")
     :ok = Logger.debug("Connect - will_retain   : #{will_retain}")
     :ok = Logger.debug("Connect - will_topic    : #{will_topic}")

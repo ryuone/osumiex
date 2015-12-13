@@ -5,7 +5,7 @@ defmodule Osumiex.Mixfile do
     [
       app: :osumiex,
       version: "0.0.1",
-      elixir: "~> 1.1-dev",
+      elixir: "~> 1.2-dev",
       deps: deps,
       dialyzer: [
         plt_add_apps: [:mnesia],
@@ -38,8 +38,8 @@ defmodule Osumiex.Mixfile do
   defp deps do
     [
       {:ranch, github: "ninenines/ranch", tag: "master"},
-      {:earmark, "~> 0.1", only: :dev},
-      {:ex_doc, "~> 0.7", only: :dev}
+      {:earmark, "~> 0.1.19", only: :dev},
+      {:ex_doc, "~> 0.11.1", only: :dev}
     ]
   end
 end

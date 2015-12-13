@@ -48,7 +48,7 @@ defmodule Osumiex.Mqtt.Message do
       password: "",
       keep_alive:  :infinity, # or the keep-alive in milliseconds (=1000*mqtt-keep-alive)
       # keep_alive_server: :infinity, # or 1.5 * keep-alive in milliseconds (=1500*mqtt-keep-alive)
-      last_will: 0,
+      will_flag: 0,
       will_qos: :qos_0,
       will_retain: 0,
       will_topic: "",
@@ -58,7 +58,7 @@ defmodule Osumiex.Mqtt.Message do
     @type t :: %__MODULE__{}
   end
   def connect(client_id, username, password, proto_version,
-              proto_name, keep_alive, last_will,
+              proto_name, keep_alive, will_flag,
               will_qos, will_retain, will_topic, will_message,
               clean_session) do
     %Connect{
@@ -68,7 +68,7 @@ defmodule Osumiex.Mqtt.Message do
       proto_version: proto_version,
       proto_name: proto_name,
       keep_alive: keep_alive,
-      last_will: last_will,
+      will_flag: will_flag,
       will_qos: will_qos,
       will_retain: will_retain,
       will_topic: will_topic,
@@ -237,31 +237,6 @@ defmodule Osumiex.Mqtt.Message do
   def disconnect(), do: %Disconnect{}
 
   ###========================================================
-  ### State : Session
-  ###========================================================
-  defmodule Session do
-    defstruct socket: nil,
-      transport: nil,
-      client_id: nil,
-      client_pid: nil,
-      subscribes: Map.new(),
-      expires: 0,
-      await_rel: Map.new(),
-      keep_alive: :infinity,
-      expire_timer: nil
-  end
-  def session(socket, transport, client_id, client_pid, keep_alive, expires) do
-    %Session{
-      socket: socket,
-      transport: transport,
-      client_id: client_id,
-      client_pid: client_pid,
-      expires: expires,
-      keep_alive: keep_alive
-    }
-  end
-
-  ###========================================================
   ### Topic
   ###========================================================
   defmodule Topic do
@@ -270,5 +245,31 @@ defmodule Osumiex.Mqtt.Message do
   def topic(name, node) do
     %Topic{name: name, node: node}
   end
+
+  ###========================================================
+  ### MQTT Message
+  ###========================================================
+  defmodule MqttMessage do
+    defstruct topic: nil,
+      qos: nil,
+      retain: nil,
+      message: "",
+      packet_id: nil,
+      dup: nil,
+      timestamp: nil
+  end
+  def create_will_message(topic, qos, retain, message) do
+    %MqttMessage{
+      topic: topic,
+      qos: qos,
+      retain: retain,
+      message: message
+    }
+  end
+
+  def convert_mqtt_msg_to_publish_msg(%MqttMessage{} = msg) do
+    publish(msg.qos, msg.dup, msg.retain, msg.topic, 1, msg.message)
+  end
+  def convert_mqtt_msg_to_publish_msg(nil = msg), do: msg
 
 end

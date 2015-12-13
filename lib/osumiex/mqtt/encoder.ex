@@ -134,7 +134,9 @@ defmodule Osumiex.Mqtt.Encoder do
   end
   # Define Mqtt Message type
   for {num, atom} <- Osumiex.Mqtt.Define.message_type do
-    def mqtt_message_type_to_binary(unquote(atom)), do: unquote(num)
+    if(atom != :reserved) do
+      def mqtt_message_type_to_binary(unquote(atom)), do: unquote(num)
+    end
   end
   # Define Mqtt ack status
   for {num, atom} <- Osumiex.Mqtt.Define.ack_status do

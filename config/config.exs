@@ -28,10 +28,6 @@ use Mix.Config
 config :osumiex,
   port: 3000
 
-config :exlager,
-  level: :debug,
-  truncation_size: 8096
-
 config :logger, :console,
   format: "$date $time [$level] $metadata$message\n",
   metadata: [:user_id]

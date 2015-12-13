@@ -117,6 +117,6 @@ defmodule Osumiex.Mqtt.Topic do
   # ------------------------------------------------------------------------
   # Split Topic to Words
   # ------------------------------------------------------------------------
-  def words(topic) when is_binary(topic), do: topic |> String.split "/"
+  def words(topic) when is_binary(topic), do: topic |> String.split("/")
 
 end
