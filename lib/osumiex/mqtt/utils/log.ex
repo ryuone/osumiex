@@ -7,7 +7,8 @@ defmodule Osumiex.Mqtt.Utils.Log do
 
   require Logger
 
-  def info(%Osumiex.Mqtt.Message{}=message) do
+  def info(%Osumiex.Mqtt.Message{variable: variable}=message) do
+    info(variable)
     message
   end
 

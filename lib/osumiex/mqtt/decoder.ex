@@ -1,16 +1,22 @@
 defmodule Osumiex.Mqtt.Decoder do
   require Logger
+  require Utils
   use Bitwise
 
   @type next_byte_fun :: (() -> {binary, next_byte_fun})
 
+  @doc """
+  Decode data.
+  """
   def decode(<< header_msg :: binary-size(2), body_msg :: binary >>) do
     decode_header(header_msg, body_msg) |> decode_msg
   end
 
   defp decode_header(<<type :: size(4), dup :: size(1), qos :: size(2), retain :: size(1),
-                     len :: size(8)>>, body_msg) do
+                     len :: size(8)>> = head_part, body_msg) do
     {len, body_msg} = binary_to_len(<<len>>, body_msg)
+    :ok = Logger.debug("decode header : len      : " <> inspect(len))
+    :ok = Logger.debug("decode header : body_msg : " <> inspect(head_part))
 
     Osumiex.Mqtt.Message.header(
       binary_to_mqtt_message_type(type),
@@ -24,47 +30,60 @@ defmodule Osumiex.Mqtt.Decoder do
 
   # 1. CONNECT
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :connect, body: body, len: len} = header) do
-    :ok = Logger.debug("#{__MODULE__} : Message type : #{header.type}")
+    :ok = Logger.debug(Utils.current_module_function <> " : Message type : #{header.type}")
     decode_connect(header, len, body) |> Osumiex.Mqtt.Utils.Log.info
   end
+
   # 3. PUBLISH
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :publish, body: body, len: len} = header) do
     decode_publish(header, len, body) |> Osumiex.Mqtt.Utils.Log.info
   end
+
   # 4. PUBACK
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :pub_ack, body: body, len: len} = header) do
     decode_pub_ack(header, len, body)
   end
+
   # 5. PUBREC
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :pub_rec, body: body, len: len} = header) do
     decode_pub_rec(header, len, body)
   end
+
   # 6. PUBREL
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :pub_rel, body: body, len: len} = header) do
     decode_pub_rel(header, len, body)
   end
+
   # 7. PUBCOMP
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :pub_comp, body: body, len: len} = header) do
     decode_pub_comp(header, len, body)
   end
+
   # 8. SUBSCRIBE
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :subscribe, body: body, len: len} = header) do
     decode_subscribe(header, len, body) |> Osumiex.Mqtt.Utils.Log.info
   end
+
   # 12. PINGREQ
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :ping_req} = header) do
     decode_ping_req(header)
   end
+
   # 14. DISCONNECT
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: :disconnect} = header) do
+    :ok = Logger.debug(Utils.current_module_function <> " : Message type : #{header.type}")
     decode_disconnect(header) |> Osumiex.Mqtt.Utils.Log.info
   end
+
+  # 14. Others
   defp decode_msg(%Osumiex.Mqtt.Message.FixedHeader{type: type} = _msg) do
     :ok = Logger.error("#{__MODULE__} : Unkown message type : #{type}")
   end
 
   ### 1. CONNECT create message ###
+  @spec decode_connect(Osumiex.Mqtt.Message.FixedHeader, integer(), binary()) :: Osumiex.Mqtt.Message.t
   defp decode_connect(header, len, body) do
+    :ok = Logger.debug(Utils.current_module_function <> " called.")
     <<payload :: binary-size(len), _rest :: binary>> = body
     {proto_name, payload} = utf8(payload)
     <<proto_version :: size(8), payload::binary>> = payload
@@ -99,8 +118,6 @@ defmodule Osumiex.Mqtt.Decoder do
                  will_message,
                  clean_session
                )
-
-    :ok = Logger.debug("#{__MODULE__} : #{inspect(variable)}")
     Osumiex.Mqtt.Message.message(header, variable, body)
   end
 
@@ -110,7 +127,7 @@ defmodule Osumiex.Mqtt.Decoder do
 
     <<payload :: binary-size(len), _rest :: binary>> = body
     <<topic_len :: big-size(16), topic :: binary-size(topic_len), payload::binary>> = payload
-    
+
     Logger.debug("#{__MODULE__} : (QoS0)topic_len : #{inspect topic_len}");
     Logger.debug("#{__MODULE__} : (QoS0)topic     : #{inspect topic}");
     Logger.debug("#{__MODULE__} : (QoS0)payload   : #{inspect payload}");
@@ -212,9 +229,7 @@ defmodule Osumiex.Mqtt.Decoder do
 
   @spec binary_to_len(binary, integer, binary) :: {integer, binary} | Exception.t
   defp binary_to_len(_bin, 0, _rest_bin) do
-    # raise 'Invalid length'
-    # TODO: implement length error.
-    :ok
+    raise Osumiex.Mqtt.RemainingLengthError
   end
   defp binary_to_len(<<overflow :: size(1), len :: size(7)>> = _bin, count, rest_bin) do
     case overflow do

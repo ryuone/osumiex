@@ -1,23 +1,26 @@
 defmodule Osumiex.Mqtt.Client do
+  require Logger
+  require Utils
   use GenServer
   @behaviour :ranch_protocol
 
   @timeout 30
 
-  require Logger
   import Record
-  defrecord :client_state, socket: [], transport: [], session_pid: nil
+  defrecord :client_state, session_pid: nil, recv_length: 2, socket: nil, transport: nil
 
   ##############################################################################
   # Gen Server(OTP) functions
   ##############################################################################
 
   def start_link(ref, socket, transport, opts) do
-    :proc_lib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
+    res = :proc_lib.start_link(__MODULE__, :init, [ref, socket, transport, opts])
+    :ok = Logger.debug("start_link inside : " <> inspect(res))
+    res
   end
 
   def init(ref, socket, transport, _opts) do
-    Logger.debug("#{__MODULE__} : Clint.init called")
+    :ok = Logger.info(Utils.current_module_function <> " called.")
     :ok = :proc_lib.init_ack({:ok, self()})
     :ok = :ranch.accept_ack(ref)
     :ok = transport.setopts(socket, [{:active, :once}])

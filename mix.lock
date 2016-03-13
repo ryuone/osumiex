@@ -1,6 +1,6 @@
-%{"earmark": {:hex, :earmark, "0.1.19"},
-  "ex_doc": {:hex, :ex_doc, "0.11.1"},
+%{"earmark": {:hex, :earmark, "0.2.1"},
+  "ex_doc": {:hex, :ex_doc, "0.11.4"},
   "exlager": {:git, "git://github.com/khia/exlager.git", "dca404300b04d2ad8f42e9ecc6f4c757e169071f", [tag: "master"]},
   "goldrush": {:git, "git://github.com/DeadZen/goldrush.git", "71e63212f12c25827e0c1b4198d37d5d018a7fec", [tag: "0.1.6"]},
   "lager": {:git, "https://github.com/basho/lager.git", "d33ccf3b69de09a628fe38b4d7981bb8671b8a4f", []},
-  "ranch": {:git, "https://github.com/ninenines/ranch.git", "02ff6533bbbc5dae95959c4979765d532d9e0af6", [tag: "master"]}}
+  "ranch": {:git, "https://github.com/ninenines/ranch.git", "cbfed2c3c70f7ef4bef3479e65acc10d08903304", [tag: "master"]}}

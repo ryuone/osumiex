@@ -1,6 +1,7 @@
 defmodule Osumiex.Mqtt.Session do
   use GenServer
   require Logger
+  require Utils
   require Osumiex.Mqtt.Topic
 
   @expires 5
@@ -22,8 +23,7 @@ defmodule Osumiex.Mqtt.Session do
   ##############################################################################
 
   def start_link(socket, transport, client_pid, %Osumiex.Mqtt.Message.Connect{client_id: client_id} = connect) do
-    :ok = Logger.debug "#{__MODULE__} : Session.start_link called [#{inspect self()}]"
-    :ok = Logger.debug "#{__MODULE__} : [#{inspect connect}]"
+    :ok = Logger.debug(Utils.current_module_function <> " called. client_id :[#{client_id}]")
     GenServer.start_link(__MODULE__, [socket, transport, client_pid, connect], name: {:global, client_id})
   end
 

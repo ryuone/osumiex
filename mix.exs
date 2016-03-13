@@ -11,8 +11,8 @@ defmodule Osumiex.Mixfile do
         plt_add_apps: [:mnesia],
         flags: [
             "-Wunmatched_returns","-Werror_handling","-Wrace_conditions",
-            "-Wno_opaque"
-            #"-Wunderspecs", "-Woverspecs"
+            "-Wno_opaque",
+            "-Wunderspecs", "-Woverspecs"
         ]
       ]
     ]
@@ -38,8 +38,8 @@ defmodule Osumiex.Mixfile do
   defp deps do
     [
       {:ranch, github: "ninenines/ranch", tag: "master"},
-      {:earmark, "~> 0.1.19", only: :dev},
-      {:ex_doc, "~> 0.11.1", only: :dev}
+      {:earmark, "~> 0.2.1", only: :dev},
+      {:ex_doc, "~> 0.11.4", only: :dev}
     ]
   end
 end
