@@ -148,7 +148,7 @@ defmodule Osumiex.Mqtt.PubSub do
     case :mnesia.read(:topic_trie_node, topic) do
       [trie_node=Osumiex.Mqtt.Topic.topic_trie_node(topic: nil)] ->
         :mnesia.write(Osumiex.Mqtt.Topic.topic_trie_node(node_id: trie_node, topic: topic))
-      [Osumiex.Mqtt.Topic.topic_trie_node(topic: topic)] ->
+      [Osumiex.Mqtt.Topic.topic_trie_node(topic: _topic)] ->
         :ok
       [] ->
         tries_triples = Osumiex.Mqtt.Topic.tries_triples(topic)

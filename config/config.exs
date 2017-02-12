@@ -26,8 +26,41 @@ use Mix.Config
 #     import_config "#{Mix.env}.exs"
 
 config :osumiex,
-  port: 3000
+  port: 3000,
+  http_port: 8080
+
+config :logger,
+  level: :info,
+  backends: [{LoggerFileBackend, :log_info},
+             {LoggerFileBackend, :log_error},
+             {LoggerFileBackend, :log_debug},
+             :console],
+  handle_otp_reports: true,
+  handle_sasl_reports: true,
+  format: "$date $time [$level] $metadata$message\n"
 
 config :logger, :console,
-  format: "$date $time [$level] $metadata$message\n",
-  metadata: [:user_id]
+  level: :debug,
+  colors: [info: :magenta],
+  format: "[console] $date $time $metadata[$level] $levelpad$message\n",
+  metadata: [:module, :function],
+  truncate: :infinity,
+  compile_time_purge_level: :debug
+
+config :logger, :log_info,
+  path: "./log/info.log",
+  metadata: [:module, :pid],
+  format: "$dateT$time $node $metadata[$level] $levelpad$message\n",
+  level: :info
+
+config :logger, :log_debug,
+  path: "./log/debug.log",
+  metadata: [:pid, :application, :module, :file, :function, :line],
+  format: "$dateT$time $node $metadata[$level] $levelpad$message\n",
+  level: :debug
+
+config :logger, :log_error,
+  path: "./log/error.log",
+  metadata: [:pid, :application, :module, :file, :line],
+  format: "$dateT$time $node $metadata[$level] $levelpad$message\n",
+  level: :error

@@ -5,8 +5,8 @@ defmodule Osumiex.Mixfile do
     [
       app: :osumiex,
       version: "0.0.1",
-      elixir: "~> 1.2-dev",
-      deps: deps,
+      elixir: "~> 1.4.1",
+      deps: deps(),
       dialyzer: [
         plt_add_apps: [:mnesia],
         flags: [
@@ -39,8 +39,9 @@ defmodule Osumiex.Mixfile do
     [
       {:cowboy, "~> 1.0.4"},
       {:gproc, "~> 0.5.0"},
+      {:logger_file_backend, "~> 0.0.9"},
       {:earmark, "~> 0.2.1", only: :dev},
-      {:ex_doc, "~> 0.11.4", only: :dev}
+      {:ex_doc, "~> 0.11.5", only: :dev}
     ]
   end
 end
