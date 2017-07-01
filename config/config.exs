@@ -43,7 +43,7 @@ config :logger, :console,
   level: :debug,
   colors: [info: :magenta],
   format: "[console] $date $time $metadata[$level] $levelpad$message\n",
-  metadata: [:module, :function],
+  metadata: [:module, :function, :session_pid],
   truncate: :infinity,
   compile_time_purge_level: :debug
 
